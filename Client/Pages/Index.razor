@@ -1,0 +1,91 @@
+﻿@page "/"
+@using BlazorApp.Shared
+@using Radzen
+@using Radzen.Blazor
+@inject HttpClient Http
+
+<h1>Dashboard</h1>
+
+@if (data == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-10 col-sm-50 p-7">
+            <RadzenArcGauge Style="width: 100%; height: 250px;">
+                <RadzenArcGaugeScale Step="20" Min="0" Max="100" MinorStep="2" Radius="1.5" TickPosition=@tickPosition
+                Y="0.9" Margin="0">
+                    <RadzenArcGaugeScaleValue Value=@lastHumidity ShowValue=@showValue>
+                        <Template Context="pointer">
+                            <h4>
+                                Humidity: @pointer.Value <sup>%</sup>
+                            </h4>
+                        </Template>
+                    </RadzenArcGaugeScaleValue>
+                </RadzenArcGaugeScale>
+            </RadzenArcGauge>
+        </div>
+
+
+        <div class="col-md-6 col-sm-12 p-4">
+            <RadzenRadialGauge Style="width: 100%; height: 300px;">
+                <RadzenRadialGaugeScale StartAngle="-150" EndAngle="150" Step="20" Min="-20" Max="60"
+                TickPosition=@tickPosition>
+                    <RadzenRadialGaugeScalePointer Value=@lastTemperature Length="0.6" ShowValue=@showValue>
+                        <Template Context="pointer">
+                            <h4>
+                                @pointer.Value <sup>°C</sup>
+                            </h4>
+                        </Template>
+                    </RadzenRadialGaugeScalePointer>
+                    <RadzenRadialGaugeScaleRange From="-20" To="10" Fill="blue" />
+                    <RadzenRadialGaugeScaleRange From="10" To="20" Fill="orange" />
+                    <RadzenRadialGaugeScaleRange From="20" To="28" Fill="green" />
+                    <RadzenRadialGaugeScaleRange From="28" To="60" Fill="red" />
+                </RadzenRadialGaugeScale>
+            </RadzenRadialGauge>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 col-sm-18 p-8">
+            <RadzenChart>
+                <RadzenLineSeries Smooth="@smooth" Data="@data" CategoryProperty="Date" Title="Temperature" ValueProperty="TemperatureC">
+                    <RadzenMarkers MarkerType="MarkerType.Circle" />
+                </RadzenLineSeries>
+               
+                <RadzenCategoryAxis Padding="20" />
+                <RadzenValueAxis>
+                    <RadzenGridLines Visible="true" />
+                    <RadzenAxisTitle Text="Celsius" />
+                </RadzenValueAxis>
+            </RadzenChart>
+        </div>
+    </div>
+}
+
+@code {
+    bool smooth = false;
+    private List<WeatherForecast> data;
+    private double lastHumidity;
+    private double lastTemperature;
+    bool showValue = true;
+    @* double value = 100; *@
+    IEnumerable<GaugeTickPosition> tickPositions = Enum.GetValues(typeof(GaugeTickPosition)).Cast<GaugeTickPosition>();
+    GaugeTickPosition tickPosition = GaugeTickPosition.Outside;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            data = await Http.GetFromJsonAsync<List<WeatherForecast>>("/api/record");
+            lastHumidity = data.OrderByDescending(x => x.Date).FirstOrDefault().Humidity;
+            lastTemperature = data.OrderByDescending(x => x.Date).FirstOrDefault().TemperatureC;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+        }
+    }
+}
